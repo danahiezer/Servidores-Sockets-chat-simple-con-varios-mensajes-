@@ -26,13 +26,13 @@ cliente.connect(("localhost", 5000))
 solicitud = cliente.recv(1024).decode("utf-8")
 nombre = input(solicitud)
 cliente.send(nombre.encode("utf-8"))
-
+# creamos un hilo para que pueda escuchar a los demas clientes y a la vez poder enviar mensajes
 hilo = threading.Thread(target=recibirMensajes,args=(cliente,))
 hilo.daemon = True
 hilo.start()
-
+# ciclo para poder enviar mensaje
 while True:
-    mensaje = input("tu: ")
+    mensaje = input()
     cliente.send(mensaje.encode("utf-8"))
 
     if mensaje.lower() == "adios":

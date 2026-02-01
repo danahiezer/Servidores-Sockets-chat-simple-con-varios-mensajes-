@@ -8,7 +8,7 @@ nombres = {} # aca guardo los nombres de los clientes
 def broadcast(mensaje,remitenteConexion):
     # envia un mensaje a todos los clientes excepto al remitente(usuario que envio el mensaje)
     for cliente in clientes:
-        if cliente != remitenteConexion:
+        if cliente != remitenteConexion: # excluye al cliente que envio el mensaje
             try:
                 cliente.send(mensaje.encode("utf-8"))
             except:
@@ -85,4 +85,3 @@ try:
 except KeyboardInterrupt:
     print(f"servidor detenido por el usuario")
     servidor.close()
-#
