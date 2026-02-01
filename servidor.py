@@ -1,11 +1,34 @@
 import socket
 import threading
 
+# lista con los clientes clientes
+clientes = []
+nombres = {} # aca guardo los nombres de los clientes
+
+def broadcast(mensaje,remitenteConexion):
+    # envia un mensaje a todos los clientes excepto al remitente(usuario que envio el mensaje)
+    for cliente in clientes:
+        if cliente != remitenteConexion:
+            try:
+                cliente.send(mensaje.encode("utf-8"))
+            except:
+                cliente.remove(cliente)
 
 def manejaClientes(conexion,direccion):
     print(f"nuevo cliente conectado: {direccion}")
 
-    conexion.send("bienvenido al servidor!".encode("utf-8"))
+    conexion.send("bienvenido al chat!.Ingresa tu nombre: ".encode("utf-8"))
+    # recibe el nombre del usuario
+    nombre = conexion.recv(1024).decode("utf-8")
+    # le asigna un puerto especifico en el dicc. para el nombre del usuario
+    nombres[conexion] = nombre
+    #agrego a la lista ese nombre con su puerto
+    clientes.append(conexion)
+
+    mensajeEntrada = f"{nombre} se unio al chat"
+    print(mensajeEntrada)
+    broadcast(mensajeEntrada,conexion)
+    conexion.send("bienvenido! escribe un mensaje ('adios' para salir):".encode("utf-8"))
 
     while True:
         try:
@@ -21,15 +44,19 @@ def manejaClientes(conexion,direccion):
             if mensaje.lower() == "adios":
                 conexion.send("hasta luego".encode("utf-8"))
                 break
-            # devuelve las respuestas del servidor en mayusculas
-            respuesta = mensaje.upper()
-            conexion.send(respuesta.encode("utf-8"))
+            # muestra en el servidor y luego envia a todos el mansaje
+            mensajeCompleto = f"{nombre}: {mensaje}"
+            print(f"[{direccion}] {mensajeCompleto}")
+            broadcast(mensajeCompleto,conexion)
 
         except:
-            print(f"error con cliente {direccion}")
+            print(f"cliente {direccion} se desconecto.")
             break
+    clientes.remove(conexion)
     conexion.close()
-    print(f"conexion cerrada con [{direccion}]")
+    mensajeSalida = f"{nombre} ha salido del chat"
+    print(mensajeSalida)
+    broadcast(mensajeSalida,None)
 
 # Crear el socket
 servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
