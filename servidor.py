@@ -12,7 +12,8 @@ def broadcast(mensaje,remitenteConexion):
             try:
                 cliente.send(mensaje.encode("utf-8"))
             except:
-                cliente.remove(cliente)
+                if cliente in clientes:
+                    clientes.remove(cliente)
 
 def manejaClientes(conexion,direccion):
     print(f"nuevo cliente conectado: {direccion}")
@@ -71,17 +72,25 @@ servidor.bind((host, puerto))
 # Escuchar conexiones (máximo 3 en espera)
 servidor.listen(3)
 print(f"Servidor milti-cliente escuchando en {host}:{puerto}")
+
 try:
     while True:
+        
         # Aceptar una conexión
         conexion, direccion = servidor.accept()
         print(f"Conexión establecida con {direccion}")
         # crea hilo para cada cliente y asi poder atender a todos a la vez
         hilo = threading.Thread(target=manejaClientes, args=(conexion,direccion))
         hilo.start()
-
         print(f"Clientes activos: {threading.active_count() - 1}")
 
 except KeyboardInterrupt:
-    print(f"servidor detenido por el usuario")
+    print(f"ERROR DE CONEXION")   
+    for cliente in clientes:
+        try:
+            cliente.send("servidor desconectados".encode("utf-8"))
+            cliente.close()
+        except:
+            pass
+finally:        
     servidor.close()
