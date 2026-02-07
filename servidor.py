@@ -1,5 +1,7 @@
 import socket
 import threading
+import signal
+import sys
 
 # lista con los clientes clientes
 clientes = []
@@ -53,7 +55,9 @@ def manejaClientes(conexion,direccion):
         except:
             print(f"cliente {direccion} se desconecto.")
             break
-    clientes.remove(conexion)
+    if conexion in clientes:
+        clientes.remove(conexion)
+
     conexion.close()
     mensajeSalida = f"{nombre} ha salido del chat"
     print(mensajeSalida)
@@ -66,31 +70,46 @@ servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 host = 'localhost'  # Significa "esta misma computadora"
 puerto = 5000
 
+# reconectamos si se desconecta el servidor
+servidor.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+
 # Enlazar el socket a la dirección
 servidor.bind((host, puerto))
 
 # Escuchar conexiones (máximo 3 en espera)
 servidor.listen(3)
+servidor.settimeout(1.0)
 print(f"Servidor milti-cliente escuchando en {host}:{puerto}")
+print("presiona Ctrl + C para cerrar servidor")
 
-try:
-    while True:
-        
+def cerrarServidor(signum, frame):
+    """Se ejecuta cuando presionas Ctrl+C"""
+    print("\n\nCerrando servidor...")
+    
+    # Notificar a todos los clientes
+    for cliente in clientes:
+        try:
+            cliente.send("servidor desconectado".encode("utf-8"))
+            cliente.close()
+        except:
+            pass
+    
+    print("Todos los clientes notificados")
+    servidor.close()
+    print("Servidor cerrado correctamente")
+    sys.exit(0)  # Salir del programa
+signal.signal(signal.SIGINT,cerrarServidor)
+
+while True:
+    try:
         # Aceptar una conexión
         conexion, direccion = servidor.accept()
         print(f"Conexión establecida con {direccion}")
         # crea hilo para cada cliente y asi poder atender a todos a la vez
         hilo = threading.Thread(target=manejaClientes, args=(conexion,direccion))
+        hilo.daemon = True
         hilo.start()
         print(f"Clientes activos: {threading.active_count() - 1}")
+    except socket.timeout:
+        continue
 
-except KeyboardInterrupt:
-    print(f"ERROR DE CONEXION")   
-    for cliente in clientes:
-        try:
-            cliente.send("servidor desconectados".encode("utf-8"))
-            cliente.close()
-        except:
-            pass
-finally:        
-    servidor.close()
